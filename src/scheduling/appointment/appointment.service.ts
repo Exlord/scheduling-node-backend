@@ -112,6 +112,7 @@ export class AppointmentService {
       },
     })) as unknown as ServiceDto[];
 
+    // preferably the processing part should be offloaded to the client side
     const waitQueue = [];
     services.forEach((service) => {
       waitQueue.push(this.processService(service));

@@ -5,9 +5,12 @@ import {
   IsArray,
   IsEmail,
   IsObject,
+  ValidateNested,
+  ArrayMinSize,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 
-export interface ServiceDto {
+export class ServiceDto {
   id: string;
   name: string;
   serviceDuration: number;
@@ -72,10 +75,15 @@ export class AppointmentDto {
 export class CreateAppointmentDto {
   @IsNotEmpty()
   @IsObject()
+  @ValidateNested({ each: true })
+  @Type(() => AppointmentDto)
   appointment: AppointmentDto;
 
   @IsArray()
   @IsNotEmpty()
+  @ValidateNested({ each: true })
+  @Type(() => ClientDto)
+  @ArrayMinSize(1)
   clients: ClientDto[];
 }
 

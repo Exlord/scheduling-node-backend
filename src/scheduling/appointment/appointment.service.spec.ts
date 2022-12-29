@@ -1,12 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AppointmentService } from './appointment.service';
+import { PrismaService } from '../../prisma/prisma.service';
+import { ClientService } from '../../client/client.service';
 
-describe('ClientService', () => {
+describe('AppointmentService', () => {
   let service: AppointmentService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [AppointmentService],
+      providers: [AppointmentService, PrismaService, ClientService],
     }).compile();
 
     service = module.get<AppointmentService>(AppointmentService);
@@ -14,5 +16,12 @@ describe('ClientService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  it('should return available slots', async () => {
+    const data = await service.getSchedules();
+    expect(data).toBeDefined();
+    expect(data.length).toBeGreaterThanOrEqual(2);
+    expect(data[0].name).toBe('Men Haircut');
   });
 });

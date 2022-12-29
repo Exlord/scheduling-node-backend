@@ -17,13 +17,13 @@ CREATE TABLE "Service" (
 );
 
 -- CreateTable
-CREATE TABLE "ServiceOpeningHours" (
+CREATE TABLE "ServiceDailyWorkingHours" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "weekDay" INTEGER NOT NULL,
     "startTime" INTEGER NOT NULL,
     "endTime" INTEGER NOT NULL,
     "serviceId" TEXT NOT NULL,
-    CONSTRAINT "ServiceOpeningHours_serviceId_fkey" FOREIGN KEY ("serviceId") REFERENCES "Service" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+    CONSTRAINT "ServiceDailyWorkingHours_serviceId_fkey" FOREIGN KEY ("serviceId") REFERENCES "Service" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
 
 -- CreateTable
@@ -49,7 +49,7 @@ CREATE TABLE "ServiceOffTime" (
 -- CreateTable
 CREATE TABLE "Appointment" (
     "id" TEXT NOT NULL PRIMARY KEY,
-    "startTime" INTEGER NOT NULL,
+    "startTime" DATETIME NOT NULL,
     "clientId" TEXT NOT NULL,
     "serviceId" TEXT NOT NULL,
     CONSTRAINT "Appointment_clientId_fkey" FOREIGN KEY ("clientId") REFERENCES "Client" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,

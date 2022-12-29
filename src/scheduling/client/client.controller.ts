@@ -6,7 +6,7 @@ export class ClientController {
   constructor(private readonly clientService: ClientService) {}
 
   @Get()
-  getSchedules(): string {
+  getSchedules() {
     return this.clientService.getSchedules();
   }
 }

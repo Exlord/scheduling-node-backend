@@ -1,13 +1,7 @@
 import { PrismaClient } from '@prisma/client';
+import { getDayInFuture } from '../src/helpers/util';
 
 const prisma = new PrismaClient();
-
-const getDayInFuture = (days): Date => {
-  const date = new Date();
-  date.setDate(date.getDate() + days);
-  date.setUTCHours(0, 0, 0, 0);
-  return date;
-};
 
 // Men Haircut
 //
@@ -42,7 +36,7 @@ async function main() {
       breakDuration: 5 * 60,
       maxBookableDays: 7,
       maxClientPerSlot: 3,
-      ServiceOpeningHours: {
+      ServiceDailyWorkingHours: {
         create: [
           {
             weekDay: 1,
@@ -113,7 +107,7 @@ async function main() {
       breakDuration: 10 * 60,
       maxBookableDays: 7,
       maxClientPerSlot: 3,
-      ServiceOpeningHours: {
+      ServiceDailyWorkingHours: {
         create: [
           {
             weekDay: 1,

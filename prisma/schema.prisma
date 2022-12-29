@@ -25,13 +25,13 @@ model Service {
   // how many days from now can be booked
   maxBookableDays     Int?
   maxClientPerSlot    Int?
-  ServiceOpeningHours ServiceOpeningHours[]
+  ServiceDailyWorkingHours ServiceDailyWorkingHours[]
   ServiceBreak        ServiceBreak[]
   ServiceOffTime      ServiceOffTime[]
   Appointment         Appointment[]
 }
 
-model ServiceOpeningHours {
+model ServiceDailyWorkingHours {
   id        String  @id @default(cuid())
   // 0=sunday, ...,6=saturday
   // if a weekday is not defined its considered full off day
@@ -71,7 +71,8 @@ model Appointment {
   client    Client  @relation(fields: [clientId], references: [id])
   service   Service @relation(fields: [serviceId], references: [id])
   // full date and time
-  startTime Int
+  startTime DateTime
+  endTime  DateTime
   clientId  String
   serviceId String
 }

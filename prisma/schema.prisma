@@ -18,8 +18,11 @@ model Client {
 model Service {
   id                  String                @id @default(cuid())
   name                String
+  // in seconds
   serviceDuration     Int
+  // in seconds
   breakDuration       Int?
+  // how many days from now can be booked
   maxBookableDays     Int?
   maxClientPerSlot    Int?
   ServiceOpeningHours ServiceOpeningHours[]
@@ -30,8 +33,11 @@ model Service {
 
 model ServiceOpeningHours {
   id        String  @id @default(cuid())
+  // 0=sunday, ...,6=saturday
   weekDay   Int
+  // in seconds from the start of the day
   startTime Int
+  // in seconds from the start of the day
   endTime   Int
   service   Service @relation(fields: [serviceId], references: [id])
   serviceId String
@@ -40,7 +46,9 @@ model ServiceOpeningHours {
 model ServiceBreak {
   id        String  @id @default(cuid())
   name      String
+  // in seconds from the start of the day
   startTime Int
+  // in seconds from the start of the day
   endTime   Int
   service   Service @relation(fields: [serviceId], references: [id])
   serviceId String
@@ -49,7 +57,9 @@ model ServiceBreak {
 model ServiceOffTime {
   id        String   @id @default(cuid())
   name      String
+  // full date and time
   start     DateTime
+  // full date and time
   end       DateTime
   service   Service  @relation(fields: [serviceId], references: [id])
   serviceId String
@@ -59,6 +69,7 @@ model Appointment {
   id        String  @id @default(cuid())
   client    Client  @relation(fields: [clientId], references: [id])
   service   Service @relation(fields: [serviceId], references: [id])
+  // full date and time
   startTime Int
   clientId  String
   serviceId String

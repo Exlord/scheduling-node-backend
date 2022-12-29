@@ -34,6 +34,7 @@ model Service {
 model ServiceOpeningHours {
   id        String  @id @default(cuid())
   // 0=sunday, ...,6=saturday
+  // if a weekday is not defined its considered full off day
   weekDay   Int
   // in seconds from the start of the day
   startTime Int

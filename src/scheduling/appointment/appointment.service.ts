@@ -1,11 +1,22 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { getDayInFuture } from '../../helpers/util';
-import { AppointmentDto, BookableSlotDto, ServiceDto } from '../dto';
+import {
+  BookableSlotDto,
+  CreateAppointmentDto,
+  ServiceDto,
+  AppointmentDto,
+  ClientDto,
+  GetClientDto,
+} from '../dto';
+import { ClientService } from '../../client/client.service';
 
 @Injectable()
-export class ClientService {
-  constructor(private prisma: PrismaService) {}
+export class AppointmentService {
+  constructor(
+    private prisma: PrismaService,
+    private clientService: ClientService,
+  ) {}
 
   private async loadBookedSlots(service: ServiceDto) {
     return (
@@ -57,7 +68,13 @@ export class ClientService {
               (slot.startTime >= end && end <= slot.endTime),
           );
           if (bookedSlotsForThisSlot.length < service.maxClientPerSlot) {
-            bookableSlots.push({ start, end });
+            const emptySlots =
+              service.maxClientPerSlot - bookedSlotsForThisSlot.length;
+            bookableSlots.push({
+              start,
+              end,
+              emptySlots,
+            });
           }
         }
 
@@ -103,5 +120,78 @@ export class ClientService {
     await Promise.all(waitQueue);
 
     return services;
+  }
+
+  async createAppointment(appointment: AppointmentDto, client: GetClientDto) {
+    const { startTime, endTime, serviceId } = appointment;
+    const data = (await this.prisma.appointment.create({
+      data: {
+        serviceId,
+        startTime: new Date(startTime),
+        endTime: new Date(endTime),
+        clientId: client.id,
+      },
+    })) as unknown as AppointmentDto;
+
+    // set the dates at timestamp to return to client
+    data.startTime = startTime;
+    data.endTime = endTime;
+
+    return {
+      appointment: data,
+      client,
+    };
+  }
+
+  async postAppointment(data: CreateAppointmentDto) {
+    const { clients, appointment } = data;
+    const { startTime, endTime, serviceId } = appointment;
+    const now = Date.now();
+
+    if (startTime < now || endTime < now || endTime < startTime)
+      throw new HttpException(
+        'Cannot book an appointment in the past',
+        HttpStatus.BAD_REQUEST,
+      );
+
+    // get the service
+    const service = (await this.prisma.service.findUnique({
+      where: {
+        id: serviceId,
+      },
+      include: {
+        ServiceBreak: true,
+        ServiceOffTime: true,
+        ServiceDailyWorkingHours: true,
+      },
+    })) as unknown as ServiceDto;
+
+    if (!service)
+      throw new HttpException(`Service not found`, HttpStatus.BAD_REQUEST);
+
+    await this.processService(service);
+    const slot = service.bookableSlots.find(
+      (slot) => slot.start === startTime && slot.end === endTime,
+    );
+
+    if (!slot || slot.emptySlots < clients.length)
+      throw new HttpException(
+        `Unfortunately there is no empty slot for the selected time`,
+        HttpStatus.NOT_ACCEPTABLE,
+      );
+
+    // create/update the clients first
+    let waitQueue = [];
+    clients.forEach((client) => {
+      waitQueue.push(this.clientService.createClient(client));
+    });
+    const updatedClients = await Promise.all(waitQueue);
+
+    waitQueue = [];
+    updatedClients.forEach((client) => {
+      waitQueue.push(this.createAppointment(appointment, client));
+    });
+
+    return await Promise.all(waitQueue);
   }
 }

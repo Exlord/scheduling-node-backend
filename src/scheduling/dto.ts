@@ -1,3 +1,12 @@
+import {
+  IsString,
+  IsNotEmpty,
+  IsNumber,
+  IsArray,
+  IsEmail,
+  IsObject,
+} from 'class-validator';
+
 export interface ServiceDto {
   id: string;
   name: string;
@@ -17,6 +26,7 @@ export interface ServiceDto {
 export interface BookableSlotDto {
   start: number;
   end: number;
+  emptySlots: number;
 }
 
 export interface ServiceBreakDto {
@@ -43,10 +53,46 @@ export interface ServiceDailyWorkingHoursDto {
   serviceId: string;
 }
 
-export interface AppointmentDto {
+export class AppointmentDto {
   id: string;
+
+  @IsNumber()
+  @IsNotEmpty()
   startTime: number;
+
+  @IsNumber()
+  @IsNotEmpty()
   endTime: number;
-  clientId: string;
+
+  @IsString()
+  @IsNotEmpty()
   serviceId: string;
+}
+
+export class CreateAppointmentDto {
+  @IsNotEmpty()
+  @IsObject()
+  appointment: AppointmentDto;
+
+  @IsArray()
+  @IsNotEmpty()
+  clients: ClientDto[];
+}
+
+export class ClientDto {
+  @IsString()
+  @IsNotEmpty()
+  firstName: string;
+
+  @IsString()
+  @IsNotEmpty()
+  lastName: string;
+
+  @IsString()
+  @IsEmail()
+  @IsNotEmpty()
+  email: string;
+}
+export class GetClientDto extends ClientDto {
+  id: string;
 }

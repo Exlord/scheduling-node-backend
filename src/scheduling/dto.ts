@@ -59,11 +59,11 @@ export interface ServiceDailyWorkingHoursDto {
 export class AppointmentDto {
   id: string;
 
-  @IsNumber()
+  // @IsNumber()
   @IsNotEmpty()
   startTime: number;
 
-  @IsNumber()
+  // @IsNumber()
   @IsNotEmpty()
   endTime: number;
 

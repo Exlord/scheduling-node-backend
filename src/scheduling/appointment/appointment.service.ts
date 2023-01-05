@@ -1,21 +1,21 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
-import { getDayInFuture } from '../../helpers/util';
+import { HttpException, HttpStatus, Injectable } from "@nestjs/common";
+import { PrismaService } from "../../prisma/prisma.service";
+import { getDayInFuture } from "../../helpers/util";
 import {
   BookableSlotDto,
   CreateAppointmentDto,
   ServiceDto,
   AppointmentDto,
   ClientDto,
-  GetClientDto,
-} from '../dto';
-import { ClientService } from '../../client/client.service';
+  GetClientDto
+} from "../dto";
+import { ClientService } from "../../client/client.service";
 
 @Injectable()
 export class AppointmentService {
   constructor(
     private prisma: PrismaService,
-    private clientService: ClientService,
+    private clientService: ClientService
   ) {}
 
   private async loadBookedSlots(service: ServiceDto) {
@@ -24,9 +24,9 @@ export class AppointmentService {
         where: {
           startTime: {
             gt: new Date(),
-            lt: getDayInFuture(service.maxBookableDays + 1),
-          },
-        },
+            lt: getDayInFuture(service.maxBookableDays + 1)
+          }
+        }
       })) as unknown as AppointmentDto[]
     ).map((slot) => {
       slot.startTime = new Date(slot.startTime).getTime();
@@ -37,14 +37,14 @@ export class AppointmentService {
 
   private async generateBookableSlotsForService(
     service: ServiceDto,
-    bookedSlots: AppointmentDto[],
+    bookedSlots: AppointmentDto[]
   ) {
     const bookableSlots = [];
     // generate bookable slots for each day
     for (let i = 0, l = service.maxBookableDays; i < l; i++) {
       // get the work hours for this day
       const workHours = service.ServiceDailyWorkingHours.find(
-        (workingHour) => workingHour.weekDay === i,
+        (workingHour) => workingHour.weekDay === i
       );
       // if not then it's on off day
       if (!workHours) continue;
@@ -57,7 +57,7 @@ export class AppointmentService {
       while (true) {
         if (startTime > now) {
           const start = startTime;
-          const end = start + service.serviceDuration;
+          const end = start + (service.serviceDuration * 1000);
           // find out if this time is already booked and how many times
           const bookedSlotsForThisSlot = bookedSlots.filter(
             // is start between this slot's startTime and endTime
@@ -65,7 +65,7 @@ export class AppointmentService {
             // is end between this slot's startTime and endTime
             (slot) =>
               (slot.startTime >= start && start <= slot.endTime) ||
-              (slot.startTime >= end && end <= slot.endTime),
+              (slot.startTime >= end && end <= slot.endTime)
           );
           if (bookedSlotsForThisSlot.length < service.maxClientPerSlot) {
             const emptySlots =
@@ -73,32 +73,32 @@ export class AppointmentService {
             bookableSlots.push({
               start,
               end,
-              emptySlots,
+              emptySlots
             });
           }
         }
 
         // forward to the next time slot
-        startTime += service.serviceDuration + service.breakDuration;
+        startTime += (service.serviceDuration + service.breakDuration) * 1000;
 
         // reached the working hours end time
         if (startTime >= endTime) break;
+
       }
+
     }
 
     return bookableSlots;
   }
 
   private async processService(service: ServiceDto) {
-    return new Promise(async (resolve) => {
-      // booked slots for this service
-      service.bookedSlots = await this.loadBookedSlots(service);
-      service.bookableSlots = await this.generateBookableSlotsForService(
-        service,
-        service.bookedSlots,
-      );
-      resolve(service);
-    });
+    // booked slots for this service
+    const bookedSlots = await this.loadBookedSlots(service);
+    service.bookableSlots = await this.generateBookableSlotsForService(
+      service,
+      bookedSlots
+    );
+    return service;
   }
 
   // generally user should first select which service they want and then we load the data for that
@@ -108,19 +108,12 @@ export class AppointmentService {
       include: {
         ServiceBreak: true,
         ServiceOffTime: true,
-        ServiceDailyWorkingHours: true,
-      },
-    })) as unknown as ServiceDto[];
+        ServiceDailyWorkingHours: true
+      }
+    })) as ServiceDto[];
 
     // preferably the processing part should be offloaded to the client side
-    const waitQueue = [];
-    services.forEach((service) => {
-      waitQueue.push(this.processService(service));
-    });
-
-    await Promise.all(waitQueue);
-
-    return services;
+    return await Promise.all(services.map(this.processService));
   }
 
   async createAppointment(appointment: AppointmentDto, client: GetClientDto) {
@@ -130,8 +123,8 @@ export class AppointmentService {
         serviceId,
         startTime: new Date(startTime),
         endTime: new Date(endTime),
-        clientId: client.id,
-      },
+        clientId: client.id
+      }
     })) as unknown as AppointmentDto;
 
     // set the dates at timestamp to return to client
@@ -140,31 +133,33 @@ export class AppointmentService {
 
     return {
       appointment: data,
-      client,
+      client
     };
   }
 
   async postAppointment(data: CreateAppointmentDto) {
     const { clients, appointment } = data;
-    const { startTime, endTime, serviceId } = appointment;
+    const { serviceId } = appointment;
+    const startTime = new Date(appointment.startTime).getTime();
+    const endTime = new Date(appointment.endTime).getTime();
     const now = Date.now();
 
     if (startTime < now || endTime < now || endTime < startTime)
       throw new HttpException(
-        'Cannot book an appointment in the past',
-        HttpStatus.BAD_REQUEST,
+        "Cannot book an appointment in the past",
+        HttpStatus.BAD_REQUEST
       );
 
     // get the service
     const service = (await this.prisma.service.findUnique({
       where: {
-        id: serviceId,
+        id: serviceId
       },
       include: {
         ServiceBreak: true,
         ServiceOffTime: true,
-        ServiceDailyWorkingHours: true,
-      },
+        ServiceDailyWorkingHours: true
+      }
     })) as unknown as ServiceDto;
 
     if (!service)
@@ -172,27 +167,18 @@ export class AppointmentService {
 
     await this.processService(service);
     const slot = service.bookableSlots.find(
-      (slot) => slot.start === startTime && slot.end === endTime,
+      (slot) => slot.start === startTime && slot.end === endTime
     );
 
     if (!slot || slot.emptySlots < clients.length)
       throw new HttpException(
         `Unfortunately there is no empty slot for the selected time`,
-        HttpStatus.NOT_ACCEPTABLE,
+        HttpStatus.NOT_ACCEPTABLE
       );
 
     // create/update the clients first
-    let waitQueue = [];
-    clients.forEach((client) => {
-      waitQueue.push(this.clientService.createClient(client));
-    });
-    const updatedClients = await Promise.all(waitQueue);
+    const updatedClients = await Promise.all(clients.map(this.clientService.createClient));
 
-    waitQueue = [];
-    updatedClients.forEach((client) => {
-      waitQueue.push(this.createAppointment(appointment, client));
-    });
-
-    return await Promise.all(waitQueue);
+    return await Promise.all(updatedClients.map((client) => this.createAppointment(appointment, client)));
   }
 }

@@ -22,13 +22,13 @@ export class ServiceDto {
   ServiceOffTime: ServiceOffTimeDto[];
   ServiceDailyWorkingHours: ServiceDailyWorkingHoursDto[];
 
-  bookedSlots: AppointmentDto[];
-  bookableSlots: BookableSlotDto[];
+  bookedSlots?: AppointmentDto[];
+  bookableSlots?: BookableSlotDto[];
 }
 
 export interface BookableSlotDto {
-  start: number;
-  end: number;
+  start: Date;
+  end: Date;
   emptySlots: number;
 }
 

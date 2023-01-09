@@ -3,9 +3,10 @@ import { AppointmentController } from './appointment/appointment.controller';
 import { PrismaModule } from '../prisma/prisma.module';
 import { ClientModule } from '../client/client.module';
 import { AppointmentService } from './appointment/appointment.service';
+import { ServiceModule } from '../service/service.module';
 
 @Module({
-  imports: [PrismaModule, ClientModule],
+  imports: [PrismaModule, ClientModule, ServiceModule],
   controllers: [AppointmentController],
   providers: [AppointmentService],
 })
